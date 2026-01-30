@@ -12,10 +12,10 @@ Resolution Tracker is a mission-driven Android habit tracker designed to help us
 
 ## Key Features & Implementation
 ### 1. Automated Accountability Reports
-Implemented a background reporting system that uses `SmsManager` to automatically send the user's daily progress to a designated recipient (like a parent or coach) at 11:56 PM, fostering external accountability.
+Implemented a background reporting system that uses `SmsManager` to automatically send the user's daily progress to a designated recipient (like a parent or coach) at 11:59 PM, fostering external accountability.
 
 ### 2. Custom Progress Visualization
-Developed a **GitHub-style Heatmap** component from scratch. Use `GridLayout` and custom color-mapping logic to visualize habit completion density over time, providing users with immediate visual feedback on their streaks.
+Developed a **GitHub-style Heatmap** component from scratch. The system calculates scheduled habits based on frequency (including Sunday-only habits) to accurately color-code completion density: Green for full success, Yellow for partial, and Red for failure.
 
 ### 3. Reliable Notifications
 Implemented a multi-tier notification system using **WorkManager**. Configured `PeriodicWorkRequest` to handle daily completion checks and intermittent reminders, ensuring high reliability even if the app is closed or the device is rebooted.

@@ -39,11 +39,6 @@ You can download the latest version of the application from the link below:
 
 ---
 
-## 📸 Screenshots
-
-*(Add screenshots of your app here to make the README look even better!)*
-
----
 
 ## 🛡 Security & Privacy
 
