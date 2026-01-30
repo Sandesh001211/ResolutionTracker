@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Resolution Tracker</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="calendar">Calendar</string>
+    <string name="motivation">Motivation</string>
+    <string name="settings">Auto Send Report</string>
+    <string name="recipient_emails">Recipient Emails (comma separated)</string>
+    <string name="sender_email">Sender Email</string>
+    <string name="sender_password">Sender App Password</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="settings_saved">Settings Saved Successfully</string>
+</resources>

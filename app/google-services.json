@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "834035585983",
+    "firebase_url": "https://sandesh-project1-default-rtdb.firebaseio.com",
+    "project_id": "sandesh-project1",
+    "storage_bucket": "sandesh-project1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834035585983:android:cadfdeb402b6bf84d2070a",
+        "android_client_info": {
+          "package_name": "com.example.firebaseappdemo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1JvGhuJfq_ctuXrVBV7OZQvbhMwWNz2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834035585983:android:67bf27b0639ae7f6d2070a",
+        "android_client_info": {
+          "package_name": "com.example.firebaseauthentication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1JvGhuJfq_ctuXrVBV7OZQvbhMwWNz2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834035585983:android:385c2e99dea5d2e8d2070a",
+        "android_client_info": {
+          "package_name": "com.example.resolutionapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1JvGhuJfq_ctuXrVBV7OZQvbhMwWNz2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
