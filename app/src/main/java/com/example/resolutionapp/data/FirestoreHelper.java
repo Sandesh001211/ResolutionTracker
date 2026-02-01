@@ -70,7 +70,21 @@ public class FirestoreHelper {
                     if (task.isSuccessful()) {
                         List<Habit> list = new ArrayList<>();
                         for (DocumentSnapshot doc : task.getResult()) {
-                            list.add(doc.toObject(Habit.class));
+                            Habit h = doc.toObject(Habit.class);
+                            if (h != null) {
+                                Long ts = doc.getLong("createdTimestamp");
+                                if (ts != null && ts > 0) {
+                                    h.createdTimestamp = ts;
+                                } else {
+                                    // For old habits without timestamp, use a default historical date
+                                    // This ensures they appear on all dates (backward compatibility)
+                                    java.util.Calendar defaultDate = java.util.Calendar.getInstance();
+                                    defaultDate.set(2024, java.util.Calendar.JANUARY, 1, 0, 0, 0);
+                                    defaultDate.set(java.util.Calendar.MILLISECOND, 0);
+                                    h.createdTimestamp = defaultDate.getTimeInMillis();
+                                }
+                                list.add(h);
+                            }
                         }
                         callback.onCallback(list);
                     } else {

@@ -4,7 +4,7 @@ public class Habit {
     private String id;
     private String title;
     private String description;
-    private long createdTimestamp;
+    public long createdTimestamp;
 
     public Habit() {
         // Required for Firestore

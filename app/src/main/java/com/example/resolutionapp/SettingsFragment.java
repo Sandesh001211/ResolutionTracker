@@ -39,8 +39,6 @@ public class SettingsFragment extends Fragment {
 
         btnSave.setOnClickListener(v -> saveSettings());
 
-        view.findViewById(R.id.btn_send_demo).setOnClickListener(v -> sendRealReportDemo());
-
         view.findViewById(R.id.btn_show_tour).setOnClickListener(v -> {
             SharedPreferences introPrefs = requireActivity().getSharedPreferences("PREFS", Context.MODE_PRIVATE);
             introPrefs.edit().putBoolean("INTRO_SEEN", false).apply();
@@ -52,77 +50,40 @@ public class SettingsFragment extends Fragment {
 
     private void loadSettings() {
         SharedPreferences prefs = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String phone = prefs.getString(KEY_RECIPIENT_PHONE, "+91");
-        if (phone.isEmpty())
-            phone = "+91";
+        String phone = prefs.getString(KEY_RECIPIENT_PHONE, "");
         etRecipientPhone.setText(phone);
     }
 
     private void saveSettings() {
         String recipientPhone = etRecipientPhone.getText().toString().trim();
-        if (!recipientPhone.startsWith("+") && !recipientPhone.isEmpty()) {
+
+        // Remove spaces/hyphens
+        recipientPhone = recipientPhone.replace(" ", "").replace("-", "");
+
+        if (recipientPhone.isEmpty()) {
+            etRecipientPhone.setError("Phone number cannot be empty");
+            return;
+        }
+
+        // If user entered 10 digits, assume India and add +91
+        if (recipientPhone.matches("\\d{10}")) {
             recipientPhone = "+91" + recipientPhone;
+        }
+
+        // Basic validation: Must start with + and have at least 10 digits
+        if (!recipientPhone.startsWith("+") || recipientPhone.length() < 11) {
+            etRecipientPhone.setError("Invalid format. Enter 10 digit number.");
+            return;
         }
 
         SharedPreferences prefs = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(KEY_RECIPIENT_PHONE, recipientPhone);
         editor.apply();
+
+        etRecipientPhone.setError(null);
         etRecipientPhone.setText(recipientPhone); // Update UI to show prefix
 
         Toast.makeText(getContext(), R.string.settings_saved, Toast.LENGTH_SHORT).show();
-    }
-
-    private void sendRealReportDemo() {
-        String phone = etRecipientPhone.getText().toString().trim();
-        if (phone.isEmpty()) {
-            Toast.makeText(getContext(), "Please enter a phone number", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        com.example.resolutionapp.data.FirestoreHelper helper = new com.example.resolutionapp.data.FirestoreHelper();
-        String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                .format(new java.util.Date());
-
-        Toast.makeText(getContext(), "Generating report...", Toast.LENGTH_SHORT).show();
-
-        helper.getHabitsTask().addOnSuccessListener(habitsSnapshot -> {
-            java.util.List<com.example.resolutionapp.model.Habit> habits = habitsSnapshot
-                    .toObjects(com.example.resolutionapp.model.Habit.class);
-
-            helper.getResolutionsForDateTask(today).addOnSuccessListener(resSnapshot -> {
-                java.util.List<String> completedIds = new java.util.ArrayList<>();
-                if (resSnapshot.exists()) {
-                    com.example.resolutionapp.model.ResolutionDay day = resSnapshot
-                            .toObject(com.example.resolutionapp.model.ResolutionDay.class);
-                    if (day != null && day.getCompletedHabitIds() != null) {
-                        completedIds = day.getCompletedHabitIds();
-                    }
-                }
-
-                StringBuilder body = new StringBuilder();
-                body.append("Demo Report (").append(today).append("):\n");
-
-                for (com.example.resolutionapp.model.Habit habit : habits) {
-                    // Inclusion logic same as Worker
-                    boolean isScheduled = habit.getFrequency() == null || habit.getFrequency().isEmpty();
-                    if (!isScheduled) {
-                        String[] days = { "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY",
-                                "SATURDAY" };
-                        int dayIndex = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK) - 1;
-                        isScheduled = habit.getFrequency().contains(days[dayIndex]);
-                    }
-
-                    if (isScheduled) {
-                        boolean isComplete = completedIds.contains(habit.getId());
-                        body.append(isComplete ? "✓ " : "✗ ");
-                        body.append(habit.getTitle()).append("\n");
-                    }
-                }
-
-                com.example.resolutionapp.util.SmsSender.sendSms(getContext(), phone, body.toString());
-                Toast.makeText(getContext(), "Demo Report Sent!", Toast.LENGTH_SHORT).show();
-            });
-        }).addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to fetch habits", Toast.LENGTH_SHORT).show());
     }
 }

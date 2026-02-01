@@ -9,6 +9,11 @@ import android.widget.LinearLayout;
 import android.view.View;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import com.example.resolutionapp.data.FirestoreHelper;
 import com.example.resolutionapp.model.Habit;
 
@@ -42,30 +47,9 @@ public class DailyResolutionsActivity extends AppCompatActivity {
     private void loadHabits() {
         firestoreHelper.getHabits(habits -> {
             allHabits = new ArrayList<>(habits);
-            injectDefaultHabits();
             generateCheckBoxes();
             loadResolutions(); // Load status after creating boxes
         });
-    }
-
-    private void injectDefaultHabits() {
-        boolean exists = false;
-        for (Habit h : allHabits) {
-            if ("default_weekly_cleaning".equals(h.getId())) {
-                exists = true;
-                break;
-            }
-        }
-        if (!exists) {
-            Habit cleaning = new Habit();
-            cleaning.setId("default_weekly_cleaning");
-            cleaning.setTitle("Weekly Cleaning");
-            cleaning.setDescription("Time to clean your space!");
-            List<String> freq = new ArrayList<>();
-            freq.add("SUNDAY");
-            cleaning.setFrequency(freq);
-            allHabits.add(cleaning);
-        }
     }
 
     private void generateCheckBoxes() {
@@ -77,8 +61,45 @@ public class DailyResolutionsActivity extends AppCompatActivity {
             return;
         }
 
+        // Parse currentDate to compare with creation timestamp
+        Calendar viewDateCal = Calendar.getInstance();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date d = sdf.parse(currentDate);
+            if (d != null) {
+                viewDateCal.setTime(d);
+                // Reset to start of day
+                viewDateCal.set(Calendar.HOUR_OF_DAY, 0);
+                viewDateCal.set(Calendar.MINUTE, 0);
+                viewDateCal.set(Calendar.SECOND, 0);
+                viewDateCal.set(Calendar.MILLISECOND, 0);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         for (Habit habit : allHabits) {
-            // Filter logic
+            // 1. Check Date Restriction: Only show habits on or after their creation date
+            // Handle habits with missing or invalid timestamps (0 or null)
+            if (habit.createdTimestamp > 0) {
+                Calendar createdCal = Calendar.getInstance();
+                createdCal.setTimeInMillis(habit.createdTimestamp);
+                // Normalize creation date to start of day (midnight)
+                createdCal.set(Calendar.HOUR_OF_DAY, 0);
+                createdCal.set(Calendar.MINUTE, 0);
+                createdCal.set(Calendar.SECOND, 0);
+                createdCal.set(Calendar.MILLISECOND, 0);
+
+                // Skip if viewing a date BEFORE the habit was created
+                if (viewDateCal.getTimeInMillis() < createdCal.getTimeInMillis()) {
+                    // Don't show habits in dates before they were created
+                    continue;
+                }
+            }
+            // If createdTimestamp is 0 or invalid, show the habit on all dates (backward
+            // compatibility)
+
+            // 2. Filter Frequency
             if (habit.getFrequency() != null && !habit.getFrequency().isEmpty()) {
                 if (!isHabitScheduledForDate(habit, currentDate)) {
                     continue; // Skip this habit today
@@ -106,8 +127,8 @@ public class DailyResolutionsActivity extends AppCompatActivity {
                     checkAllResolutionsCompleted();
                 });
             } else {
-                cb.setAlpha(0.5f);
-                tv.setAlpha(0.5f);
+                cb.setAlpha(0.6f);
+                tv.setAlpha(0.6f);
             }
 
             llResolutionsContainer.addView(cardView);
@@ -119,7 +140,8 @@ public class DailyResolutionsActivity extends AppCompatActivity {
         androidx.cardview.widget.CardView card = (androidx.cardview.widget.CardView) cardView;
 
         if (isChecked) {
-            card.setCardBackgroundColor(android.graphics.Color.parseColor("#4CAF50")); // Green
+            // No green background
+            card.setCardBackgroundColor(android.graphics.Color.parseColor("#2A2A35"));
             tv.setTextColor(android.graphics.Color.WHITE);
         } else {
             card.setCardBackgroundColor(android.graphics.Color.parseColor("#2A2A35")); // Default Dark
@@ -132,12 +154,12 @@ public class DailyResolutionsActivity extends AppCompatActivity {
             return true; // Daily
 
         try {
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd",
-                    java.util.Locale.getDefault());
-            java.util.Date date = sdf.parse(dateString);
-            java.util.Calendar cal = java.util.Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd",
+                    Locale.getDefault());
+            Date date = sdf.parse(dateString);
+            Calendar cal = Calendar.getInstance();
             cal.setTime(date);
-            int dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK);
+            int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
 
             String dayName = getDayName(dayOfWeek);
             return dayName != null && habit.getFrequency().contains(dayName);
@@ -150,19 +172,19 @@ public class DailyResolutionsActivity extends AppCompatActivity {
 
     private String getDayName(int dayOfWeek) {
         switch (dayOfWeek) {
-            case java.util.Calendar.SUNDAY:
+            case Calendar.SUNDAY:
                 return "SUNDAY";
-            case java.util.Calendar.MONDAY:
+            case Calendar.MONDAY:
                 return "MONDAY";
-            case java.util.Calendar.TUESDAY:
+            case Calendar.TUESDAY:
                 return "TUESDAY";
-            case java.util.Calendar.WEDNESDAY:
+            case Calendar.WEDNESDAY:
                 return "WEDNESDAY";
-            case java.util.Calendar.THURSDAY:
+            case Calendar.THURSDAY:
                 return "THURSDAY";
-            case java.util.Calendar.FRIDAY:
+            case Calendar.FRIDAY:
                 return "FRIDAY";
-            case java.util.Calendar.SATURDAY:
+            case Calendar.SATURDAY:
                 return "SATURDAY";
             default:
                 return null;
@@ -172,19 +194,22 @@ public class DailyResolutionsActivity extends AppCompatActivity {
     private void loadResolutions() {
         firestoreHelper.getResolutionsForDate(currentDate, ids -> {
             completedHabitIds = ids;
-            // Iterate through child views (Cards)
             for (int i = 0; i < llResolutionsContainer.getChildCount(); i++) {
                 View v = llResolutionsContainer.getChildAt(i);
-                // It is now a CardView potentially
                 CheckBox cb = v.findViewById(R.id.cbResolution);
                 if (cb != null) {
                     String habitId = (String) cb.getTag();
-                    cb.setOnCheckedChangeListener(null); // Prevent trigger
+                    cb.setOnCheckedChangeListener(null);
                     boolean isDone = completedHabitIds.contains(habitId);
+
                     cb.setChecked(isDone);
                     updateCardStyle(v, isDone);
 
-                    if (!isPast) {
+                    if (isPast) {
+                        if (!isDone) {
+                            cb.setButtonDrawable(R.drawable.ic_close_red);
+                        }
+                    } else {
                         cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
                             if (isChecked)
                                 playSuccessSound();
@@ -214,6 +239,10 @@ public class DailyResolutionsActivity extends AppCompatActivity {
         }
 
         firestoreHelper.saveResolutions(currentDate, currentCompletedIds);
+
+        // Notify StatsFragment that resolutions have been updated
+        android.content.Intent intent = new android.content.Intent("RESOLUTIONS_UPDATED");
+        androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     private void playSuccessSound() {

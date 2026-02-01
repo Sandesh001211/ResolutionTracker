@@ -37,10 +37,45 @@ public class StatsFragment extends Fragment {
         glHeatmap = view.findViewById(R.id.glHeatmap);
         firestoreHelper = new FirestoreHelper();
 
+        // Register broadcast receiver for resolution updates
+        android.content.IntentFilter filter = new android.content.IntentFilter("RESOLUTIONS_UPDATED");
+        if (getActivity() != null) {
+            androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(getActivity())
+                    .registerReceiver(resolutionUpdateReceiver, filter);
+        }
+
         loadStats();
 
         return view;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh stats whenever the fragment becomes visible
+        // This ensures the heatmap updates when you complete resolutions and switch
+        // tabs
+        loadStats();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Unregister broadcast receiver to prevent memory leaks
+        if (getActivity() != null) {
+            androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(getActivity())
+                    .unregisterReceiver(resolutionUpdateReceiver);
+        }
+    }
+
+    // BroadcastReceiver to listen for resolution updates
+    private final android.content.BroadcastReceiver resolutionUpdateReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context context, android.content.Intent intent) {
+            // Refresh stats when resolutions are updated
+            loadStats();
+        }
+    };
 
     private void loadStats() {
         // Calculate start date (1 year ago)
@@ -197,14 +232,24 @@ public class StatsFragment extends Fragment {
             cellCal.set(Calendar.MILLISECOND, 0);
 
             if (cellCal.before(today)) {
+                // Past dates
                 if (totalExpected > 0) {
+                    double completionRate = (double) count / totalExpected;
+
                     if (count >= totalExpected) {
+                        // 100% - All completed
                         box.setBackgroundColor(Color.parseColor("#4CAF50")); // Green
                         box.setTextColor(Color.WHITE);
-                    } else if (count > 0) {
+                    } else if (completionRate >= 0.5) {
+                        // 50% or more - Half or more completed
                         box.setBackgroundColor(Color.parseColor("#FFC107")); // Yellow
                         box.setTextColor(Color.BLACK);
+                    } else if (count > 0) {
+                        // > 0% but < 50% - Need improvement
+                        box.setBackgroundColor(Color.parseColor("#9E9E9E")); // Grey
+                        box.setTextColor(Color.BLACK);
                     } else {
+                        // 0% - None completed
                         box.setBackgroundColor(Color.parseColor("#F44336")); // Red
                         box.setTextColor(Color.WHITE);
                     }
@@ -213,9 +258,45 @@ public class StatsFragment extends Fragment {
                     box.setTextColor(Color.WHITE);
                 }
             } else if (cellCal.equals(today)) {
-                box.setBackgroundColor(Color.parseColor("#E0E0E0")); // Light Grey (Today)
-                box.setTextColor(Color.BLACK);
+                // Today - show completion status with a border to indicate it's today
+                int bgColor;
+                int textColor;
+
+                if (totalExpected > 0) {
+                    double completionRate = (double) count / totalExpected;
+
+                    if (count >= totalExpected) {
+                        // 100% - All completed
+                        bgColor = Color.parseColor("#4CAF50"); // Green - All done!
+                        textColor = Color.WHITE;
+                    } else if (completionRate >= 0.5) {
+                        // 50% or more - Half or more completed
+                        bgColor = Color.parseColor("#FFC107"); // Yellow - Partial (≥50%)
+                        textColor = Color.BLACK;
+                    } else if (count > 0) {
+                        // > 0% but < 50% - Need improvement
+                        bgColor = Color.parseColor("#9E9E9E"); // Grey
+                        textColor = Color.BLACK;
+                    } else {
+                        // 0% - None completed
+                        bgColor = Color.parseColor("#F44336"); // Red
+                        textColor = Color.WHITE;
+                    }
+                } else {
+                    bgColor = Color.parseColor("#424242"); // Grey (Nothing scheduled)
+                    textColor = Color.WHITE;
+                }
+
+                // Create border drawable for today
+                box.setPadding(4, 4, 4, 4);
+                android.graphics.drawable.GradientDrawable border = new android.graphics.drawable.GradientDrawable();
+                border.setColor(bgColor);
+                border.setStroke(4, Color.parseColor("#FFA500")); // Orange border for today
+                border.setCornerRadius(8);
+                box.setBackground(border);
+                box.setTextColor(textColor);
             } else {
+                // Future dates
                 box.setBackgroundColor(Color.parseColor("#2C2C2C")); // Dark Grey (Future)
                 box.setTextColor(Color.GRAY);
             }
@@ -236,7 +317,27 @@ public class StatsFragment extends Fragment {
         int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
         String dayName = getDayName(dayOfWeek);
 
+        // Normalize cal to check (start of day)
+        Calendar checkCal = (Calendar) cal.clone();
+        checkCal.set(Calendar.HOUR_OF_DAY, 0);
+        checkCal.set(Calendar.MINUTE, 0);
+        checkCal.set(Calendar.SECOND, 0);
+        checkCal.set(Calendar.MILLISECOND, 0);
+
         for (com.example.resolutionapp.model.Habit h : habits) {
+            // Check Creation Date
+            Calendar createdCal = Calendar.getInstance();
+            createdCal.setTimeInMillis(h.getCreatedTimestamp());
+            createdCal.set(Calendar.HOUR_OF_DAY, 0);
+            createdCal.set(Calendar.MINUTE, 0);
+            createdCal.set(Calendar.SECOND, 0);
+            createdCal.set(Calendar.MILLISECOND, 0);
+
+            // If the day we are checking is BEFORE the creation day, skip this habit.
+            if (checkCal.before(createdCal)) {
+                continue;
+            }
+
             if (h.getFrequency() == null || h.getFrequency().isEmpty()) {
                 count++;
             } else if (dayName != null && h.getFrequency().contains(dayName)) {
