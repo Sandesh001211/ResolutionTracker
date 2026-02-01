@@ -23,7 +23,7 @@ Built with Java and Firebase, it combines a sleek modern UI with robust backgrou
 
 You can download the latest version of the application from the link below:
 
-### 📥 [Download ResolutionTracker.apk](./ResolutionTracker.apk)
+### 📥 [Download ResolutionTracker.apk (Updated)](./ResolutionTracker.apk)
 
 *(Note: You may need to enable "Install from Unknown Sources" on your Android device to install the APK.)*
 

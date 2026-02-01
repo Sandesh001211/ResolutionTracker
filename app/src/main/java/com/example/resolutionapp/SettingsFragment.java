@@ -65,13 +65,20 @@ public class SettingsFragment extends Fragment {
             return;
         }
 
+        // Check for minimum 10 digits
+        String digitsOnly = recipientPhone.replaceAll("[^0-9]", "");
+        if (digitsOnly.length() < 10) {
+            etRecipientPhone.setError("Phone number cannot be less than 10 digits");
+            return;
+        }
+
         // If user entered 10 digits, assume India and add +91
         if (recipientPhone.matches("\\d{10}")) {
             recipientPhone = "+91" + recipientPhone;
         }
 
         // Basic validation: Must start with + and have at least 10 digits
-        if (!recipientPhone.startsWith("+") || recipientPhone.length() < 11) {
+        if (!recipientPhone.startsWith("+")) {
             etRecipientPhone.setError("Invalid format. Enter 10 digit number.");
             return;
         }
